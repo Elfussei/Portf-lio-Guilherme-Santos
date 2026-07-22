@@ -6,9 +6,9 @@ gsap.registerPlugin(ScrollTrigger);
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', (e) => {
       e.preventDefault();
-      const targetId = this.getAttribute('href');
+      const targetId = anchor.getAttribute('href');
       if (targetId && targetId !== '#') {
         const targetElement = document.querySelector(targetId);
         if (targetElement) {
@@ -276,7 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
     
-    dynamicContainer.innerHTML = dynamicHTML;
+    if (customProjects.length > 0) {
+      dynamicContainer.innerHTML = dynamicHTML;
+    }
 
     // Attach click listeners to new editable images
     const newEditableImages = dynamicContainer.querySelectorAll('.editable-image');
@@ -318,4 +320,159 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   console.log('Portfólio carregado e animado com GSAP! Podes clicar em qualquer imagem/mockup para a alterar.');
+
+  // --- Exportador Local Flutuante ---
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    const toolbar = document.createElement('div');
+    toolbar.style.position = 'fixed';
+    toolbar.style.bottom = '20px';
+    toolbar.style.right = '20px';
+    toolbar.style.backgroundColor = '#1f2937';
+    toolbar.style.padding = '15px';
+    toolbar.style.borderRadius = '12px';
+    toolbar.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+    toolbar.style.zIndex = '99999';
+    toolbar.style.display = 'flex';
+    toolbar.style.gap = '10px';
+    toolbar.style.alignItems = 'center';
+
+    const exportBtn = document.createElement('button');
+    exportBtn.innerText = '💾 Guardar & Exportar HTML';
+    exportBtn.style.backgroundColor = '#10b981';
+    exportBtn.style.color = 'white';
+    exportBtn.style.border = 'none';
+    exportBtn.style.padding = '10px 15px';
+    exportBtn.style.borderRadius = '6px';
+    exportBtn.style.cursor = 'pointer';
+    exportBtn.style.fontWeight = 'bold';
+
+    const adminBtn = document.createElement('a');
+    adminBtn.innerText = '⚙️ Projetos';
+    adminBtn.href = '/admin.html';
+    adminBtn.style.backgroundColor = '#4b5563';
+    adminBtn.style.color = 'white';
+    adminBtn.style.textDecoration = 'none';
+    adminBtn.style.padding = '10px 15px';
+    adminBtn.style.borderRadius = '6px';
+    adminBtn.style.fontSize = '0.9rem';
+
+    toolbar.appendChild(adminBtn);
+    toolbar.appendChild(exportBtn);
+    document.body.appendChild(toolbar);
+
+    exportBtn.addEventListener('click', async () => {
+      exportBtn.innerText = 'A processar...';
+      try {
+        const response = await fetch('/index.html');
+        const htmlText = await response.text();
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+
+        // Limpar scripts injetados pelo Vite em dev
+        const scripts = doc.querySelectorAll('script');
+        scripts.forEach(script => {
+          const src = script.getAttribute('src');
+          if (src && (src.includes('@vite') || src.includes('react-refresh'))) {
+            script.remove();
+          }
+        });
+
+        // 1. Injetar Projetos
+        const customProjects = JSON.parse(localStorage.getItem('custom_projects') || '[]');
+        if (customProjects.length > 0) {
+            let dynamicHTML = '';
+            customProjects.forEach((p: any, i: number) => {
+                const isEven = i % 2 === 0;
+                dynamicHTML += `
+                <section class="project-section" style="margin-top: 4rem;">
+                    <div class="project-header">
+                        <h1 class="project-title dyn-stagger">${p.title.replace(' ', '<br>')}</h1>
+                    </div>
+                    <div class="project-content" style="${!isEven ? 'flex-direction: row-reverse;' : ''}">
+                        <div class="project-info bg-purple text-white stagger-in dyn-stagger">
+                            <h3 class="project-info-title">${p.subtitle}</h3>
+                            <p class="project-info-desc">${p.desc}</p>
+                            ${p.stat1Value ? `
+                            <div class="project-stats">
+                                <div class="stat">
+                                    <h4>${p.stat1Value}</h4>
+                                    <span>${p.stat1Label}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="project-visual stagger-in dyn-stagger">
+                            <div class="laptop-mockup editable-image" data-img-id="dyn-laptop-${p.id}" id="dyn-laptop-${p.id}" style="background-image: url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1974&auto=format&fit=crop'); cursor: pointer;" title="Clique para alterar a imagem"></div>
+                            <div class="phone-mockup-small editable-image" data-img-id="dyn-phone-${p.id}" id="dyn-phone-${p.id}" style="background-image: url('https://images.unsplash.com/photo-1601598851547-4302969d0614?q=80&w=1964&auto=format&fit=crop'); cursor: pointer;" title="Clique para alterar a imagem"></div>
+                        </div>
+                    </div>
+                </section>
+                `;
+            });
+            const dynamicContainer = doc.getElementById('dynamic-projects-container');
+            if (dynamicContainer) {
+                dynamicContainer.innerHTML = dynamicHTML;
+            }
+        }
+
+        // 2. Injetar Links
+        const savedLinks = JSON.parse(localStorage.getItem('savedLinks') || '{}');
+        Object.keys(savedLinks).forEach(id => {
+            const el = doc.getElementById(id);
+            if (el) {
+                if (savedLinks[id].text) el.innerText = savedLinks[id].text;
+                if (savedLinks[id].href) el.setAttribute('href', savedLinks[id].href);
+            }
+        });
+
+        // 3. Injetar Imagens
+        function getExportId(el: HTMLElement, docCtx: Document) {
+            const classStr = el.className.replace(/\\s+/g, '-');
+            const allSimilar = docCtx.querySelectorAll(`.${classStr.split('-')[0]}`);
+            let index = 0;
+            allSimilar.forEach((similar, i) => {
+                if (similar === el) index = i;
+            });
+            return `${classStr}-${index}`;
+        }
+
+        const editableImages = doc.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp, .editable-image');
+        
+        editableImages.forEach((el) => {
+            let elId = el.getAttribute('data-img-id') || el.getAttribute('id');
+            if (!elId) {
+                elId = getExportId(el as HTMLElement, doc);
+            }
+            const savedImg = localStorage.getItem(`img_${elId}`);
+            if (savedImg) {
+                if (el.tagName.toLowerCase() === 'img') {
+                    el.setAttribute('src', savedImg);
+                } else {
+                    (el as HTMLElement).style.backgroundImage = `url('${savedImg}')`;
+                }
+            }
+        });
+
+        const finalHTML = "<!DOCTYPE html>\\n" + doc.documentElement.outerHTML;
+        
+        const blob = new Blob([finalHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        exportBtn.innerText = '✅ Exportado!';
+        setTimeout(() => { exportBtn.innerText = '💾 Guardar & Exportar HTML'; }, 3000);
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao exportar o código.');
+        exportBtn.innerText = '❌ Erro';
+      }
+    });
+  }
 });

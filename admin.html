@@ -97,6 +97,11 @@
             <h2>Projetos Salvos Localmente</h2>
             <div id="projectsContainer"></div>
         </div>
+        <div class="export-section" style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e5e7eb; text-align: center;">
+            <h2 style="color: #10b981; margin-bottom: 1rem;">Publicar Alterações (Exportar)</h2>
+            <p style="color: #4b5563; margin-bottom: 1.5rem; font-size: 0.95rem;">Todas as imagens e projetos adicionados estão guardados temporariamente no teu navegador. Clica no botão abaixo para gerar o teu ficheiro definitivo e enviar para o GitHub/Vercel.</p>
+            <button id="exportBtn" onclick="exportHTML()" style="background-color: #10b981; font-size: 1.1rem; padding: 1rem 2rem;">📥 Exportar Código Final (index.html)</button>
+        </div>
     </div>
 
     <script>
@@ -152,6 +157,116 @@
                 projects.splice(index, 1);
                 localStorage.setItem('custom_projects', JSON.stringify(projects));
                 loadProjects();
+            }
+        }
+
+        function generateExportId(el, docCtx) {
+            const classStr = el.className.replace(/\s+/g, '-');
+            const allSimilar = docCtx.querySelectorAll(`.${classStr.split('-')[0]}`);
+            let index = 0;
+            allSimilar.forEach((similar, i) => {
+                if (similar === el) index = i;
+            });
+            return `${classStr}-${index}`;
+        }
+
+        async function exportHTML() {
+            try {
+                const btn = document.getElementById('exportBtn');
+                btn.innerText = 'A gerar código...';
+                btn.disabled = true;
+
+                // Vai buscar o HTML original limpo
+                const response = await fetch('/index.html');
+                const htmlText = await response.text();
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+
+                // 1. Injetar Projetos
+                const customProjects = JSON.parse(localStorage.getItem('custom_projects') || '[]');
+                if (customProjects.length > 0) {
+                    let dynamicHTML = '';
+                    customProjects.forEach((p, i) => {
+                        const isEven = i % 2 === 0;
+                        dynamicHTML += `
+                        <section class="project-section" style="margin-top: 4rem;">
+                            <div class="project-header">
+                                <h1 class="project-title dyn-stagger">${p.title.replace(' ', '<br>')}</h1>
+                            </div>
+                            <div class="project-content" style="${!isEven ? 'flex-direction: row-reverse;' : ''}">
+                                <div class="project-info bg-purple text-white stagger-in dyn-stagger">
+                                    <h3 class="project-info-title">${p.subtitle}</h3>
+                                    <p class="project-info-desc">${p.desc}</p>
+                                    ${p.stat1Value ? `
+                                    <div class="project-stats">
+                                        <div class="stat">
+                                            <h4>${p.stat1Value}</h4>
+                                            <span>${p.stat1Label}</span>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                <div class="project-visual stagger-in dyn-stagger">
+                                    <div class="laptop-mockup editable-image" data-img-id="dyn-laptop-${p.id}" id="dyn-laptop-${p.id}" style="background-image: url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1974&auto=format&fit=crop'); cursor: pointer;" title="Clique para alterar a imagem"></div>
+                                    <div class="phone-mockup-small editable-image" data-img-id="dyn-phone-${p.id}" id="dyn-phone-${p.id}" style="background-image: url('https://images.unsplash.com/photo-1601598851547-4302969d0614?q=80&w=1964&auto=format&fit=crop'); cursor: pointer;" title="Clique para alterar a imagem"></div>
+                                </div>
+                            </div>
+                        </section>
+                        `;
+                    });
+                    const dynamicContainer = doc.getElementById('dynamic-projects-container');
+                    if (dynamicContainer) {
+                        dynamicContainer.innerHTML = dynamicHTML;
+                    }
+                }
+
+                // 2. Injetar Links Editados
+                const savedLinks = JSON.parse(localStorage.getItem('savedLinks') || '{}');
+                Object.keys(savedLinks).forEach(id => {
+                    const el = doc.getElementById(id);
+                    if (el) {
+                        if (savedLinks[id].text) el.innerText = savedLinks[id].text;
+                        if (savedLinks[id].href) el.setAttribute('href', savedLinks[id].href);
+                    }
+                });
+
+                // 3. Injetar Imagens (Base64)
+                const editableImages = doc.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp, .editable-image');
+                
+                editableImages.forEach((el) => {
+                    let elId = el.getAttribute('id');
+                    if (!elId) {
+                        elId = generateExportId(el, doc);
+                    }
+                    const savedImg = localStorage.getItem(`img_${elId}`);
+                    if (savedImg) {
+                        if (el.tagName.toLowerCase() === 'img') {
+                            el.setAttribute('src', savedImg);
+                        } else {
+                            el.style.backgroundImage = `url('${savedImg}')`;
+                        }
+                    }
+                });
+
+                // Preparar e forçar o download
+                const finalHTML = "<!DOCTYPE html>\\n" + doc.documentElement.outerHTML;
+                const blob = new Blob([finalHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'index.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                btn.innerText = '📥 Exportar Código Final (index.html)';
+                btn.disabled = false;
+                alert('Sucesso! Um novo ficheiro index.html foi descarregado.\\n\\nAgora basta substituíres o index.html original por este na tua pasta do VS Code e fazer o git push!');
+            } catch (err) {
+                console.error(err);
+                alert('Ocorreu um erro ao exportar o ficheiro HTML.');
             }
         }
 
