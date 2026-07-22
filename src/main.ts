@@ -72,19 +72,50 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.onload = (event) => {
         const base64Img = event.target?.result as string;
         
-        // Aplicar visualmente
-        applyImage(currentEditingElement!, base64Img);
-        
-        // Guardar no localStorage para persistir nos reloads
-        const elId = currentEditingElement!.getAttribute('data-img-id');
-        if (elId) {
-          try {
-            localStorage.setItem(`img_${elId}`, base64Img);
-          } catch (e) {
-            console.warn('LocalStorage cheio! Imagem não foi guardada permanentemente.');
-            alert('Aviso: Imagem demasiado grande para guardar no LocalStorage. A imagem só ficará visível até recarregares a página.');
-          }
-        }
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_WIDTH = 1200; // Reduzido para poupar ainda mais espaço
+            const MAX_HEIGHT = 1200;
+            
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                // Comprimir para JPEG com 60% de qualidade
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                
+                // Aplicar visualmente
+                applyImage(currentEditingElement!, compressedBase64);
+                
+                // Guardar no localStorage
+                const elId = currentEditingElement!.getAttribute('data-img-id');
+                if (elId) {
+                  try {
+                    localStorage.setItem(`img_${elId}`, compressedBase64);
+                  } catch (e) {
+                    console.warn('LocalStorage cheio!', e);
+                    alert('Aviso: Mesmo com compressão, a memória local está cheia. Limpe a cache do navegador.');
+                  }
+                }
+            }
+        };
+        img.src = base64Img;
       };
       
       reader.readAsDataURL(file);
