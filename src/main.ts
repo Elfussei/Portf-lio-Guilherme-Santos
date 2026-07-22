@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
     exportBtn.addEventListener('click', async () => {
       exportBtn.innerText = 'A processar...';
       try {
-        const response = await fetch('/index.html');
-        const htmlText = await response.text();
+        const res = await fetch('/index.html?t=' + Date.now());
+        const htmlText = await res.text();
         
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlText, 'text/html');
