@@ -22,40 +22,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Funcionalidade de Edição Visual de Imagens ---
   
-  // Criar um input de ficheiro oculto
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = 'image/*';
-  fileInput.style.display = 'none';
-  document.body.appendChild(fileInput);
-
+  // Variáveis de edição
+  let fileInput: HTMLInputElement | null = null;
   let currentEditingElement: HTMLElement | null = null;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  if (isLocalhost) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+  }
 
   // Seletores para todos os elementos que têm imagens/mockups
   const imageElements = document.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp');
 
   // Adicionar cursor pointer a todos eles
   imageElements.forEach(el => {
-    (el as HTMLElement).style.cursor = 'pointer';
-    (el as HTMLElement).title = 'Clique para alterar a imagem';
+    if (isLocalhost) {
+      (el as HTMLElement).style.cursor = 'pointer';
+      (el as HTMLElement).title = 'Clique para alterar a imagem';
+    }
     
     // Tentar carregar imagem do localStorage caso exista
-    const elId = el.getAttribute('id') || generateId(el as HTMLElement);
-    el.setAttribute('data-img-id', elId);
-    
-    const savedImg = localStorage.getItem(`img_${elId}`);
-    if (savedImg) {
-      applyImage(el as HTMLElement, savedImg);
+    const elId = el.getAttribute('id');
+    if (elId) {
+      el.setAttribute('data-img-id', elId);
+      const savedImg = localStorage.getItem(`img_${elId}`);
+      if (savedImg) {
+        applyImage(el as HTMLElement, savedImg);
+      }
     }
 
     el.addEventListener('click', (e) => {
       e.preventDefault();
+      if (!isLocalhost || !fileInput) return;
       currentEditingElement = el as HTMLElement;
       fileInput.click();
     });
   });
 
-  fileInput.addEventListener('change', (e) => {
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (file && currentEditingElement) {
       const reader = new FileReader();
@@ -81,8 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.readAsDataURL(file);
     }
     // Limpar o input para permitir selecionar o mesmo ficheiro novamente se necessário
-    fileInput.value = '';
+    fileInput!.value = '';
   });
+  }
 
   function applyImage(el: HTMLElement, imgData: string) {
     if (el.tagName.toLowerCase() === 'img') {
@@ -92,16 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Gera um ID simples e consistente para o elemento com base nas suas classes e índice
-  function generateId(el: HTMLElement): string {
-    const classStr = el.className.replace(/\s+/g, '-');
-    const allSimilar = document.querySelectorAll(`.${classStr.split('-')[0]}`);
-    let index = 0;
-    allSimilar.forEach((similar, i) => {
-      if (similar === el) index = i;
-    });
-    return `${classStr}-${index}`;
-  }
+
 
   // --- Funcionalidade de Edição de Links ---
   const savedLinks = JSON.parse(localStorage.getItem('savedLinks') || '{}');
@@ -294,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       el.addEventListener('click', (e) => {
         e.preventDefault();
+        if (!isLocalhost || !fileInput) return;
         currentEditingElement = el as HTMLElement;
         fileInput.click();
       });
@@ -427,23 +429,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 3. Injetar Imagens
-        function getExportId(el: HTMLElement, docCtx: Document) {
-            const classStr = el.className.replace(/\\s+/g, '-');
-            const allSimilar = docCtx.querySelectorAll(`.${classStr.split('-')[0]}`);
-            let index = 0;
-            allSimilar.forEach((similar, i) => {
-                if (similar === el) index = i;
-            });
-            return `${classStr}-${index}`;
-        }
 
         const editableImages = doc.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp, .editable-image');
         
         editableImages.forEach((el) => {
             let elId = el.getAttribute('data-img-id') || el.getAttribute('id');
-            if (!elId) {
-                elId = getExportId(el as HTMLElement, doc);
-            }
             const savedImg = localStorage.getItem(`img_${elId}`);
             if (savedImg) {
                 if (el.tagName.toLowerCase() === 'img') {
