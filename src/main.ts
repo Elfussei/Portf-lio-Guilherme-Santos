@@ -481,7 +481,7 @@ gsap.registerPlugin(ScrollTrigger);
             }
         });
 
-        const finalHTML = "<!DOCTYPE html>\\n" + doc.documentElement.outerHTML;
+        const finalHTML = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
         
         const blob = new Blob([finalHTML], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
