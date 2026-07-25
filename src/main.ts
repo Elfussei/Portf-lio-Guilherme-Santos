@@ -4,7 +4,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-document.addEventListener('DOMContentLoaded', () => {
+// execute immediately, module scripts are deferred
+{
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', (e) => {
       e.preventDefault();
@@ -25,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Variáveis de edição
   let fileInput: HTMLInputElement | null = null;
   let currentEditingElement: HTMLElement | null = null;
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.');
 
   if (isLocalhost) {
     fileInput = document.createElement('input');
@@ -179,15 +180,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuToggle = document.getElementById('menuToggle');
   const fullscreenMenu = document.getElementById('fullscreenMenu');
   const menuItems = document.querySelectorAll('.menu-item');
+  console.log("menuToggle found:", !!menuToggle, "fullscreenMenu found:", !!fullscreenMenu);
 
   if (menuToggle && fullscreenMenu) {
     menuToggle.addEventListener('click', () => {
       fullscreenMenu.classList.toggle('active');
+      menuToggle.classList.toggle('menu-open');
+      document.body.classList.toggle('menu-open-lock');
     });
 
     menuItems.forEach(item => {
       item.addEventListener('click', () => {
         fullscreenMenu.classList.remove('active');
+        menuToggle.classList.remove('menu-open');
+        document.body.classList.remove('menu-open-lock');
       });
     });
   }
@@ -355,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Portfólio carregado e animado com GSAP! Podes clicar em qualquer imagem/mockup para a alterar.');
 
   // --- Exportador Local Flutuante ---
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.')) {
     const toolbar = document.createElement('div');
     toolbar.style.position = 'fixed';
     toolbar.style.bottom = '20px';
@@ -496,4 +502,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-});
+  
+  // --- ScrollSpy: highlight active links ---
+  const navLinks = document.querySelectorAll('.desktop-nav a[href^="#"], .fullscreen-menu a[href^="#"]');
+  const sectionsArr = Array.from(document.querySelectorAll('section[id], header[id]'));
+  
+  if (sectionsArr.length > 0 && navLinks.length > 0) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(link => {
+            link.classList.remove('active-link');
+            if (link.getAttribute('href') === `#${id}`) {
+              link.classList.add('active-link');
+            }
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -75% 0px' });
+    
+    sectionsArr.forEach(sec => observer.observe(sec));
+  }
+}
