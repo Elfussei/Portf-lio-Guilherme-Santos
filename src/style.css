@@ -834,10 +834,10 @@ section {
     transition: color 0.3s;
   }
   .desktop-nav a:hover {
-    color: var(--purple);
+    color: var(--primary);
   }
   .desktop-nav .nav-cta {
-    background-color: var(--purple);
+    background-color: var(--primary);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
