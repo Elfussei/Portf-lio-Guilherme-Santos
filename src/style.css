@@ -65,6 +65,25 @@ body.menu-open-lock {
 .spacer-large { height: 2rem; }
 .spacer-medium { height: 1rem; }
 
+.btn-project {
+  display: inline-block;
+  margin-top: 2rem;
+  padding: 0.875rem 2.5rem;
+  background-color: var(--white);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.125rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: transform 0.3s, box-shadow 0.3s;
+  text-align: center;
+  width: fit-content;
+}
+.btn-project:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+}
+
 /* Tags / Pills */
 .tag {
   display: inline-block;
