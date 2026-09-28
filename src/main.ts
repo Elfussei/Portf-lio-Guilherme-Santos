@@ -37,7 +37,7 @@ gsap.registerPlugin(ScrollTrigger);
   }
 
   // Seletores para todos os elementos que têm imagens/mockups
-  const imageElements = document.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp');
+  const imageElements = document.querySelectorAll('.avatar, .phone-mockup, .phone-mockup-small, .laptop-mockup, .footer-photo, .floating-graphic, .phone-mockup-large, .phone-mockup-comp, .editable-image');
 
   // Adicionar cursor pointer a todos eles
   imageElements.forEach(el => {
@@ -206,22 +206,37 @@ gsap.registerPlugin(ScrollTrigger);
   gsap.from('.hero-desc', { opacity: 0, y: 20, duration: 0.8, ease: 'power2.out', delay: 0.5 });
   gsap.from('.avatar', { opacity: 0, scale: 0.8, duration: 0.8, ease: 'back.out(1.7)', delay: 0.4 });
 
-  // Standard Section Fade Up
+  // Animated Titles
+  const titles = gsap.utils.toArray('.section-title, .project-title');
+  titles.forEach((title: any) => {
+    gsap.from(title, {
+      scrollTrigger: {
+        trigger: title,
+        start: 'top 90%',
+      },
+      opacity: 0,
+      x: -50,
+      duration: 1,
+      ease: 'power4.out'
+    });
+  });
+
+  // Standard Section Fade Up (More Dramatic)
   const sections = gsap.utils.toArray('.animate-on-scroll:not(.experiencia-section):not(.footer-section)');
   sections.forEach((sec: any) => {
     gsap.from(sec, {
       scrollTrigger: {
         trigger: sec,
-        start: 'top 80%',
+        start: 'top 85%',
       },
       opacity: 0,
-      y: 40,
-      duration: 0.8,
-      ease: 'power2.out'
+      y: 80,
+      duration: 1.2,
+      ease: 'power3.out'
     });
   });
 
-  // Staggered Grids (Cards)
+  // Staggered Grids (More pop and bounce)
   const grids = document.querySelectorAll('.solucoes-grid, .tech-grid, .porque-grid, .project-content');
   grids.forEach(grid => {
     const cards = grid.querySelectorAll('.stagger-in');
@@ -232,17 +247,18 @@ gsap.registerPlugin(ScrollTrigger);
           start: 'top 85%',
         },
         opacity: 0,
-        y: 30,
-        scale: 0.95,
-        duration: 0.6,
-        stagger: 0.15,
-        ease: 'back.out(1.2)'
+        y: 60,
+        scale: 0.8,
+        rotation: 2,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: 'back.out(2)'
       });
     }
   });
 
-  // Parallax on images
-  gsap.utils.toArray('.phone-mockup, .laptop-mockup, .phone-mockup-small').forEach((img: any) => {
+  // Parallax on images (Stronger effect)
+  gsap.utils.toArray('.phone-mockup, .laptop-mockup, .phone-mockup-small, .editable-image').forEach((img: any) => {
     gsap.to(img, {
       scrollTrigger: {
         trigger: img,
@@ -250,7 +266,7 @@ gsap.registerPlugin(ScrollTrigger);
         end: 'bottom top',
         scrub: 1
       },
-      y: -20,
+      y: -80,
       ease: 'none'
     });
   });
